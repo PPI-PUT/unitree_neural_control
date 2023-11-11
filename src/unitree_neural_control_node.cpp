@@ -9,7 +9,7 @@ namespace unitree_neural_control
         this->declare_parameter("foot_contact_threshold", 20);
         int16_t foot_contact_threshold = 0;
         this->get_parameter("foot_contact_threshold", foot_contact_threshold);
-        this->declare_parameter("model_path", std::string("path/to/model.pt"));
+        this->declare_parameter("model_path", std::string("/root/ros2_ws/policy-app/policy_network.pt"));
         std::string model_path;
         this->get_parameter("model_path", model_path);
         // Controller
@@ -35,3 +35,13 @@ namespace unitree_neural_control
         msg_goal_ = msg;
     }
 } // namespace unitree_neural_control
+
+int main(int argc, char *argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  rclcpp::spin(std::make_shared<unitree_neural_control::UnitreeNeuralControlNode>(options));
+  rclcpp::shutdown();
+
+  return 0;
+}

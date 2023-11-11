@@ -1,4 +1,5 @@
-#include "Eigen/Dense"
+#include <Eigen/Dense>
+#include <torch/script.h>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -33,6 +34,7 @@ namespace unitree_neural_control
         int16_t getFootContactThreshold();
 
     private:
+        torch::jit::script::Module module_;
         int16_t foot_contact_threshold_;
         std::vector<float> last_action_;
         std::vector<float> foot_contact_;

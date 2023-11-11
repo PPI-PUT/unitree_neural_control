@@ -17,21 +17,23 @@ namespace unitree_neural_control
 
     void UnitreeNeuralControl::loadModel(const std::string &filename)
     {
-        printf("Loading model...\n");
-        // module = torch::jit::load(filename);
-        printf("File: %s\n", filename.c_str());
+        module_ = torch::jit::load(filename);
     }
 
     unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(const geometry_msgs::msg::TwistStamped::SharedPtr goal,
                                                                            const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
     {
-        printf("Forwarding model...\n");
+        // Convert msg to states
         auto state = this->msgToTensor(goal, msg);
-        // auto stateTensor = torch::from_blob(state.data(), {1, static_cast<long>(state.size())});
-        // at::Tensor action = module.forward({stateTensor}).toTensor();
-        // std::vector<float> action_vec(action.data_ptr<float>(), action.data_ptr<float>() + action.numel());
-        
-        return this->actionToMsg(last_action_);
+        // Convert vector to tensor
+        auto stateTensor = torch::from_blob(state.data(), {1, static_cast<long>(state.size())});
+        // Forward pass
+        at::Tensor action = module_.forward({stateTensor}).toTensor();
+        // Convert tensor to vector
+        std::vector<float> action_vec(action.data_ptr<float>(), action.data_ptr<float>() + action.numel());
+        // Update last action
+        std::copy(action_vec.begin(), action_vec.end(), last_action_.begin());
+        return this->actionToMsg(action_vec);
     }
     void UnitreeNeuralControl::setFootContactThreshold(const int16_t threshold)
     {
@@ -175,3 +177,5 @@ namespace unitree_neural_control
                 static_cast<float>(gravity_vec.z())};
     }
 } // namespace unitree_neural_control
+
+
