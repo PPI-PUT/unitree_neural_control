@@ -168,13 +168,9 @@ namespace unitree_neural_control
         Vector3f gravity_world(0.0, 0.0, -1.0);
         // Rotate the gravity vector to the sensor frame
         Vector3f gravity_sensor = imu_orientation.conjugate() * gravity_world;
-        // Subtract the linear acceleration to get the gravity vector
-        Vector3f linear_acc_vec(linear_acceleration.x, linear_acceleration.y, linear_acceleration.z);
-        linear_acc_vec.normalize();
-        Vector3f gravity_vec = gravity_sensor - linear_acc_vec;
-        return {static_cast<float>(gravity_vec.x()),
-                static_cast<float>(gravity_vec.y()),
-                static_cast<float>(gravity_vec.z())};
+        return {static_cast<float>(gravity_sensor.x()),
+                static_cast<float>(gravity_sensor.y()),
+                static_cast<float>(gravity_sensor.z())};
     }
 } // namespace unitree_neural_control
 
