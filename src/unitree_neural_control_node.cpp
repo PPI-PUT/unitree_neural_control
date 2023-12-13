@@ -39,11 +39,14 @@ namespace unitree_neural_control
         // std_msgs::msg::Float32MultiArray tensor_msg;
         // tensor_msg.data.resize(12);
         unitree_a1_legged_msgs::msg::LowCmd cmd;
-        std_msgs::msg::Float32MultiArray tensor_msg;
-        controller_->modelForward(msg_goal_, msg, nominal_joint_position_, cmd, tensor_msg);
+        if(controller_->dummyStand(msg, cmd))
+        {
+            std_msgs::msg::Float32MultiArray tensor_msg;
+            controller_->modelForward(msg_goal_, msg, nominal_joint_position_, cmd, tensor_msg);
+            tensor_->publish(tensor_msg);   
+        }
         cmd.header.stamp = this->now();
         cmd_->publish(cmd);
-        tensor_->publish(tensor_msg);
 
     }
     void UnitreeNeuralControlNode::cmdVelCallback(geometry_msgs::msg::TwistStamped::SharedPtr msg)
