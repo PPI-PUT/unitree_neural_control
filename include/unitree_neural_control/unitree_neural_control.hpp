@@ -39,6 +39,7 @@ namespace unitree_neural_control
                           std_msgs::msg::Float32MultiArray &tensor);
         void setFootContactThreshold(int16_t threshold);
         int16_t getFootContactThreshold();
+        bool dummyStand(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg, unitree_a1_legged_msgs::msg::LowCmd &cmd_msg);
 
     private:
         torch::jit::script::Module module_;
@@ -76,6 +77,5 @@ namespace unitree_neural_control
         void updateCyclesSinceLastContact(uint32_t tick);
         void initStandParams(unitree_a1_legged_msgs::msg::LowCmd &cmd_msg);
         void initControlParams(unitree_a1_legged_msgs::msg::LowCmd &cmd_msg);
-        bool dummyStand(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg, unitree_a1_legged_msgs::msg::LowCmd &cmd_msg);
     };
 }
