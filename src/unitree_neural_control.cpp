@@ -217,7 +217,7 @@ namespace unitree_neural_control
 
     void UnitreeNeuralControl::initStandParams(unitree_a1_legged_msgs::msg::LowCmd &cmd_msg)
     {
-        cmd_msg.mode = 0x0A;
+        cmd_msg.common.mode = 0x0A;
         cmd_msg.motor_cmd.front_right.hip.mode = 0x0A;
         cmd_msg.motor_cmd.front_right.hip.kp = 70.0;
         cmd_msg.motor_cmd.front_right.hip.kd = 3.0;
@@ -259,43 +259,9 @@ namespace unitree_neural_control
     }
     void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd &cmd)
     {
-        cmd.mode = 0x0A;
-        cmd.motor_cmd.front_right.hip.mode = 0x0A;
-        cmd.motor_cmd.front_right.thigh.mode = 0x0A;
-        cmd.motor_cmd.front_right.calf.mode = 0x0A;
-        cmd.motor_cmd.front_left.hip.mode = 0x0A;
-        cmd.motor_cmd.front_left.thigh.mode = 0x0A;
-        cmd.motor_cmd.front_left.calf.mode = 0x0A;
-        cmd.motor_cmd.rear_right.hip.mode = 0x0A;
-        cmd.motor_cmd.rear_right.thigh.mode = 0x0A;
-        cmd.motor_cmd.rear_right.calf.mode = 0x0A;
-        cmd.motor_cmd.rear_left.hip.mode = 0x0A;
-        cmd.motor_cmd.rear_left.thigh.mode = 0x0A;
-        cmd.motor_cmd.rear_left.calf.mode = 0x0A;
-        cmd.motor_cmd.front_right.hip.kp = 5.0;
-        cmd.motor_cmd.front_right.thigh.kp = 5.0;
-        cmd.motor_cmd.front_right.calf.kp = 5.0;
-        cmd.motor_cmd.front_left.hip.kp = 5.0;
-        cmd.motor_cmd.front_left.thigh.kp = 5.0;
-        cmd.motor_cmd.front_left.calf.kp = 5.0;
-        cmd.motor_cmd.rear_right.hip.kp = 5.0;
-        cmd.motor_cmd.rear_right.thigh.kp = 5.0;
-        cmd.motor_cmd.rear_right.calf.kp = 5.0;
-        cmd.motor_cmd.rear_left.hip.kp = 5.0;
-        cmd.motor_cmd.rear_left.thigh.kp = 5.0;
-        cmd.motor_cmd.rear_left.calf.kp = 5.0;
-        cmd.motor_cmd.front_right.hip.kd = 1.0;
-        cmd.motor_cmd.front_right.thigh.kd = 1.0;
-        cmd.motor_cmd.front_right.calf.kd = 1.0;
-        cmd.motor_cmd.front_left.hip.kd = 1.0;
-        cmd.motor_cmd.front_left.thigh.kd = 1.0;
-        cmd.motor_cmd.front_left.calf.kd = 1.0;
-        cmd.motor_cmd.rear_right.hip.kd = 1.0;
-        cmd.motor_cmd.rear_right.thigh.kd = 1.0;
-        cmd.motor_cmd.rear_right.calf.kd = 1.0;
-        cmd.motor_cmd.rear_left.hip.kd = 1.0;
-        cmd.motor_cmd.rear_left.thigh.kd = 1.0;
-        cmd.motor_cmd.rear_left.calf.kd = 1.0;
+        cmd.common.mode = 0x0A;
+        cmd.common.kp = 20.0;
+        cmd.common.kd = 0.5;
     }
     bool UnitreeNeuralControl::dummyStand(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg, unitree_a1_legged_msgs::msg::LowCmd &cmd_msg)
     {
