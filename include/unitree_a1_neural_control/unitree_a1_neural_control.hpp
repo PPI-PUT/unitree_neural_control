@@ -49,11 +49,9 @@ class UNITREE_A1_NEURAL_CONTROL_PUBLIC UnitreeNeuralControl
 public:
   UnitreeNeuralControl(int16_t foot_threshold, std::array<float, 12> nominal_joint_position);
   void loadModel(const std::string & filename);
-  void modelForward(
+  unitree_a1_legged_msgs::msg::LowCmd modelForward(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-    const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg,
-    unitree_a1_legged_msgs::msg::LowCmd & cmd,
-    std_msgs::msg::Float32MultiArray & tensor);
+    const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   void setFootContactThreshold(int16_t threshold);
   int16_t getFootContactThreshold() const;
 

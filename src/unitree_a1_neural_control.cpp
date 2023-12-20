@@ -36,11 +36,9 @@ void UnitreeNeuralControl::loadModel(const std::string & filename)
   module_ = torch::jit::load(filename);
 }
 
-void UnitreeNeuralControl::modelForward(
+unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg,
-  unitree_a1_legged_msgs::msg::LowCmd & cmd,
-  std_msgs::msg::Float32MultiArray & tensor)
+  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
 {
   // Convert msg to states
   auto state = this->msgToTensor(goal, msg);
@@ -51,20 +49,10 @@ void UnitreeNeuralControl::modelForward(
   // Convert tensor to vector
   std::vector<float> action_vec(action.data_ptr<float>(),
     action.data_ptr<float>() + action.numel());
-  // Apply to target
-  // Take nominal position and add action
-  std::transform(
-    state.begin(), state.begin() + action_vec.size(),
-    action_vec.begin(), action_vec.begin(),
-    [&](double a, double b)
-    {return a + (b * scaled_factor_);});
   // Update last action
   std::copy(action_vec.begin(), action_vec.end(), last_action_.begin());
-  // Convert vector to tensor
-  tensor.data.resize(state.size());
-  std::copy(state.begin(), state.end(), tensor.data.begin());
   // Convert to message
-  cmd = this->actionToMsg(action_vec);
+  return this->actionToMsg(action_vec);
 }
 
 void UnitreeNeuralControl::setFootContactThreshold(const int16_t threshold)
@@ -118,18 +106,24 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::actionToMsg(
   const std::vector<float> & action)
 {
   unitree_a1_legged_msgs::msg::LowCmd cmd;
-  cmd.motor_cmd.front_right.hip.q = nominal_[0] + action[0];
-  cmd.motor_cmd.front_right.thigh.q = nominal_[1] + action[1];
-  cmd.motor_cmd.front_right.calf.q = nominal_[2] + action[2];
-  cmd.motor_cmd.front_left.hip.q = nominal_[3] + action[3];
-  cmd.motor_cmd.front_left.thigh.q = nominal_[4] + action[4];
-  cmd.motor_cmd.front_left.calf.q = nominal_[5] + action[5];
-  cmd.motor_cmd.rear_right.hip.q = nominal_[6] + action[6];
-  cmd.motor_cmd.rear_right.thigh.q = nominal_[7] + action[7];
-  cmd.motor_cmd.rear_right.calf.q = nominal_[8] + action[8];
-  cmd.motor_cmd.rear_left.hip.q = nominal_[9] + action[9];
-  cmd.motor_cmd.rear_left.thigh.q = nominal_[10] + action[10];
-  cmd.motor_cmd.rear_left.calf.q = nominal_[11] + action[11];
+  // Take nominal position and add action
+  // std::transform(
+  //   nominal_.begin(), nominal_.end(),
+  //   action.begin(), action.begin(),
+  //   [&](double a, double b)
+  //   {return a + (b * scaled_factor_);});
+  cmd.motor_cmd.front_right.hip.q = action[0];
+  cmd.motor_cmd.front_right.thigh.q = action[1];
+  cmd.motor_cmd.front_right.calf.q = action[2];
+  cmd.motor_cmd.front_left.hip.q = action[3];
+  cmd.motor_cmd.front_left.thigh.q = action[4];
+  cmd.motor_cmd.front_left.calf.q = action[5];
+  cmd.motor_cmd.rear_right.hip.q = action[6];
+  cmd.motor_cmd.rear_right.thigh.q = action[7];
+  cmd.motor_cmd.rear_right.calf.q = action[8];
+  cmd.motor_cmd.rear_left.hip.q = action[9];
+  cmd.motor_cmd.rear_left.thigh.q = action[10];
+  cmd.motor_cmd.rear_left.calf.q = action[11];
   this->initControlParams(cmd);
   return cmd;
 }

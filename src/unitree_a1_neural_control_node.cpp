@@ -36,6 +36,7 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   controller_->loadModel(model_path);
 
   msg_goal_ = std::make_shared<geometry_msgs::msg::TwistStamped>();
+  msg_state_ = std::make_shared<unitree_a1_legged_msgs::msg::LowState>();
   // Subscribers and publishers
   state_ = this->create_subscription<unitree_a1_legged_msgs::msg::LowState>(
     "~/input/state", 1,
@@ -44,17 +45,19 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
     "~/input/cmd_vel", 1,
     std::bind(&UnitreeNeuralControlNode::cmdVelCallback, this, std::placeholders::_1));
   cmd_ = this->create_publisher<unitree_a1_legged_msgs::msg::LowCmd>("~/output/command", 1);
-  tensor_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("~/output/tensor", 1);
+  control_loop_ = this->create_wall_timer(std::chrono::milliseconds(20), std::bind(&UnitreeNeuralControlNode::controlLoop, this));
+}
+
+void UnitreeNeuralControlNode::controlLoop()
+{
+  auto cmd = controller_->modelForward(msg_goal_, msg_state_);
+  cmd.header.stamp = this->now();
+  cmd_->publish(cmd);  
 }
 
 void UnitreeNeuralControlNode::stateCallback(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
 {
-  unitree_a1_legged_msgs::msg::LowCmd cmd;
-  std_msgs::msg::Float32MultiArray tensor_msg;
-  controller_->modelForward(msg_goal_, msg, cmd, tensor_msg);
-  tensor_->publish(tensor_msg);
-  cmd.header.stamp = this->now();
-  cmd_->publish(cmd);
+  msg_state_ = msg;
 }
 
 void UnitreeNeuralControlNode::cmdVelCallback(geometry_msgs::msg::TwistStamped::SharedPtr msg)

@@ -32,12 +32,14 @@ public:
 private:
   UnitreeNeuralControlPtr controller_{nullptr};
   geometry_msgs::msg::TwistStamped::SharedPtr msg_goal_;
+  unitree_a1_legged_msgs::msg::LowState::SharedPtr msg_state_;
   rclcpp::Subscription<unitree_a1_legged_msgs::msg::LowState>::SharedPtr state_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_;
   rclcpp::Publisher<unitree_a1_legged_msgs::msg::LowCmd>::SharedPtr cmd_;
-  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr tensor_;
+  rclcpp::TimerBase::SharedPtr control_loop_;
   void stateCallback(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   void cmdVelCallback(geometry_msgs::msg::TwistStamped::SharedPtr msg);
+  void controlLoop();
   std::array<float, 12> nominal_joint_position_;
 };
 }  // namespace unitree_a1_neural_control
