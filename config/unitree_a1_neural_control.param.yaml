@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    model_path: "/home/mackop/inttention_ws/policy_network.pt"
+    foot_contact_threshold: 20
