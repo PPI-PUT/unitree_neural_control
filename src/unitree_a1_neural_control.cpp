@@ -51,6 +51,12 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
     action.data_ptr<float>() + action.numel());
   // Update last action
   std::copy(action_vec.begin(), action_vec.end(), last_action_.begin());
+  // Take nominal position and add action
+  std::transform(
+    nominal_.begin(), nominal_.end(),
+    action_vec.begin(), action_vec.begin(),
+    [&](double a, double b)
+    {return a + (b * scaled_factor_);});
   // Convert to message
   return this->actionToMsg(action_vec);
 }
@@ -73,10 +79,10 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   // Joint positions
   auto position = this->pushJointPositions(msg->motor_state);
   tensor.insert(tensor.end(), position.begin(), position.end());
-  // Imu orientation
-  tensor.push_back(msg->imu.orientation.x);
-  tensor.push_back(msg->imu.orientation.y);
-  tensor.push_back(msg->imu.orientation.z);
+  // Imu angular velocity
+  tensor.push_back(msg->imu.angular_velocity.x);
+  tensor.push_back(msg->imu.angular_velocity.y);
+  tensor.push_back(msg->imu.angular_velocity.z);
   // Joint velocities
   this->pushJointVelocities(tensor, msg->motor_state.front_right);
   this->pushJointVelocities(tensor, msg->motor_state.front_left);
@@ -106,12 +112,6 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::actionToMsg(
   const std::vector<float> & action)
 {
   unitree_a1_legged_msgs::msg::LowCmd cmd;
-  // Take nominal position and add action
-  // std::transform(
-  //   nominal_.begin(), nominal_.end(),
-  //   action.begin(), action.begin(),
-  //   [&](double a, double b)
-  //   {return a + (b * scaled_factor_);});
   cmd.motor_cmd.front_right.hip.q = action[0];
   cmd.motor_cmd.front_right.thigh.q = action[1];
   cmd.motor_cmd.front_right.calf.q = action[2];
