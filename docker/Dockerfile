@@ -79,12 +79,7 @@ RUN git clone https://github.com/PPI-PUT/unitree_neural_control.git
 
 WORKDIR /root/ros2_ws/src/unitree_legged
 RUN mkdir -p a1_description/test \
-    && vcs import < deps.repos \ 
-    && cd unitree_a1_legged/unitree_legged_sdk \
-    && mkdir build \
-    && cd build \
-    && cmake .. \
-    && make
+    && vcs import < deps.repos
 
 # Install ROS 2
 RUN apt-get install -y \
@@ -97,8 +92,9 @@ ENV UNITREE_LEGGED_SDK_PATH=/root/ros2_ws/src/unitree_legged/unitree_a1_legged/u
 
 
 WORKDIR /root/ros2_ws
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash; colcon build --packages-select unitree_a1_legged_msgs --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic"
 RUN /bin/bash -c "source install/setup.bash; colcon build --packages-up-to --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=On -Wall -Wextra -Wpedantic"
 RUN /bin/bash -c "echo 'export LD_LIBRARY_PATH=/root/libtorch/lib/:$LD_LIBRARY_PATH' >> ~/.bashrc"
-
+RUN echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc
 CMD ["bash"]
