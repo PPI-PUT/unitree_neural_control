@@ -20,20 +20,33 @@ namespace unitree_a1_neural_control
 {
 
 UnitreeNeuralControl::UnitreeNeuralControl(
+  const std::string & filepath,
   int16_t foot_threshold, std::array<float,
   12> nominal_joint_position)
 {
+  model_path_ = filepath;
   this->setFootContactThreshold(foot_threshold);
   nominal_ = nominal_joint_position;
+  this->resetController();
+}
+
+void UnitreeNeuralControl::resetController()
+{
+  this->initValues();
+  this->loadModel();
+}
+
+void UnitreeNeuralControl::loadModel()
+{
+  module_ = torch::jit::load(model_path_);
+}
+
+void UnitreeNeuralControl::initValues()
+{
   std::fill(last_action_.begin(), last_action_.end(), 0.0f);
   std::fill(last_tick_.begin(), last_tick_.end(), 0.0f);
   std::fill(foot_contact_.begin(), foot_contact_.end(), 0.0f);
   std::fill(cycles_since_last_contact_.begin(), cycles_since_last_contact_.end(), 0.0f);
-}
-
-void UnitreeNeuralControl::loadModel(const std::string & filename)
-{
-  module_ = torch::jit::load(filename);
 }
 
 unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(

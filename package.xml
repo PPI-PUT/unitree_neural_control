@@ -15,7 +15,8 @@
   <depend>geometry_msgs</depend>
   <depend>unitree_a1_legged_msgs</depend>
   <depend>eigen</depend>
-
+  <depend>std_srvs</depend>
+  
   <test_depend>ament_cmake_ros</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
