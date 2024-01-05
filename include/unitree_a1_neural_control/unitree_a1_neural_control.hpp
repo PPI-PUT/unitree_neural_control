@@ -30,7 +30,7 @@
 #include <unitree_a1_legged_msgs/msg/low_cmd.hpp>
 #include <unitree_a1_legged_msgs/msg/leg_state.hpp>
 #include <unitree_a1_legged_msgs/msg/foot_force_state.hpp>
-
+#include <unitree_a1_legged_msgs/msg/debug_double_array.hpp>
 #include "unitree_a1_neural_control/visibility_control.hpp"
 
 using Vector3f = Eigen::Vector3f;
@@ -55,6 +55,7 @@ public:
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   void setFootContactThreshold(int16_t threshold);
   int16_t getFootContactThreshold() const;
+  void getInputAndOutput(std::vector<float> & input, std::vector<float> & output);
   void resetController();
 
 private:
@@ -63,7 +64,8 @@ private:
   int16_t foot_contact_threshold_;
   double scaled_factor_ = 0.25;
   std::array<float, 12> nominal_;
-  std::array<float, 12> last_action_;
+  std::vector<float> last_action_;
+  std::vector<float> last_state_;
   std::array<float, 4> foot_contact_;
   std::array<float, 4> cycles_since_last_contact_;
   std::array<float, 4> last_tick_;

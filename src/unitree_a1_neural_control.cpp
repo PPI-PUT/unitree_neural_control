@@ -27,6 +27,8 @@ UnitreeNeuralControl::UnitreeNeuralControl(
   model_path_ = filepath;
   this->setFootContactThreshold(foot_threshold);
   nominal_ = nominal_joint_position;
+  last_state_.resize(52);
+  last_action_.resize(12);
   this->resetController();
 }
 
@@ -41,8 +43,16 @@ void UnitreeNeuralControl::loadModel()
   module_ = torch::jit::load(model_path_);
 }
 
+void UnitreeNeuralControl::getInputAndOutput(
+  std::vector<float> & input,
+  std::vector<float> & output)
+{
+  input = last_state_;
+  output = last_action_;
+}
 void UnitreeNeuralControl::initValues()
 {
+  std::fill(last_state_.begin(), last_state_.end(), 0.0f);
   std::fill(last_action_.begin(), last_action_.end(), 0.0f);
   std::fill(last_tick_.begin(), last_tick_.end(), 0.0f);
   std::fill(foot_contact_.begin(), foot_contact_.end(), 0.0f);
@@ -55,6 +65,8 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
 {
   // Convert msg to states
   auto state = this->msgToTensor(goal, msg);
+  // Copy state to last state for debug purposes
+  last_state_ = state;
   // Convert vector to tensor
   auto stateTensor = torch::from_blob(state.data(), {1, static_cast<long>(state.size())});
   // Forward pass
@@ -63,7 +75,7 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   std::vector<float> action_vec(action.data_ptr<float>(),
     action.data_ptr<float>() + action.numel());
   // Update last action
-  std::copy(action_vec.begin(), action_vec.end(), last_action_.begin());
+  last_action_ = action_vec;
   // Take nominal position and add action
   std::transform(
     nominal_.begin(), nominal_.end(),
