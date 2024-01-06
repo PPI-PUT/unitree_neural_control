@@ -1,4 +1,4 @@
 /**:
   ros__parameters:
-    model_path: "/home/mackop/intention_policy/policy_network_new.pt"
+    model_path: "/home/mackop/intention_policy/network_with_qpos_qvel_cmd.pt"
     foot_contact_threshold: 1

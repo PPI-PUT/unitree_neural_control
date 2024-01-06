@@ -21,11 +21,9 @@ namespace unitree_a1_neural_control
 
 UnitreeNeuralControl::UnitreeNeuralControl(
   const std::string & filepath,
-  int16_t foot_threshold, std::array<float,
-  12> nominal_joint_position)
+  std::array<float, 12> nominal_joint_position)
 {
   model_path_ = filepath;
-  this->setFootContactThreshold(foot_threshold);
   nominal_ = nominal_joint_position;
   last_state_.resize(52);
   last_action_.resize(12);
@@ -54,9 +52,6 @@ void UnitreeNeuralControl::initValues()
 {
   std::fill(last_state_.begin(), last_state_.end(), 0.0f);
   std::fill(last_action_.begin(), last_action_.end(), 0.0f);
-  std::fill(last_tick_.begin(), last_tick_.end(), 0.0f);
-  std::fill(foot_contact_.begin(), foot_contact_.end(), 0.0f);
-  std::fill(cycles_since_last_contact_.begin(), cycles_since_last_contact_.end(), 0.0f);
 }
 
 unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
@@ -86,16 +81,6 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   return this->actionToMsg(action_vec);
 }
 
-void UnitreeNeuralControl::setFootContactThreshold(const int16_t threshold)
-{
-  foot_contact_threshold_ = threshold;
-}
-
-int16_t UnitreeNeuralControl::getFootContactThreshold() const
-{
-  return foot_contact_threshold_;
-}
-
 std::vector<float> UnitreeNeuralControl::msgToTensor(
   const geometry_msgs::msg::TwistStamped::SharedPtr goal,
   const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
@@ -104,10 +89,6 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   // Joint positions
   auto position = this->pushJointPositions(msg->motor_state);
   tensor.insert(tensor.end(), position.begin(), position.end());
-  // Imu angular velocity
-  tensor.push_back(msg->imu.angular_velocity.x);
-  tensor.push_back(msg->imu.angular_velocity.y);
-  tensor.push_back(msg->imu.angular_velocity.z);
   // Joint velocities
   this->pushJointVelocities(tensor, msg->motor_state.front_right);
   this->pushJointVelocities(tensor, msg->motor_state.front_left);
@@ -117,19 +98,9 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   tensor.push_back(goal->twist.linear.x);
   tensor.push_back(goal->twist.linear.y);
   tensor.push_back(goal->twist.angular.z);
-  // Convert foot force to contact
-  this->convertFootForceToContact(msg->foot_force);
-  // Foot contact
-  tensor.insert(tensor.end(), foot_contact_.begin(), foot_contact_.end());
-  // Gravity vector
-  auto gravity_vec =
-    this->convertToGravityVector(msg->imu.orientation);
-  tensor.insert(tensor.end(), gravity_vec.begin(), gravity_vec.end());
   // Last action
   tensor.insert(tensor.end(), last_action_.begin(), last_action_.end());
   // Cycles since last contact
-  this->updateCyclesSinceLastContact();
-  tensor.insert(tensor.end(), cycles_since_last_contact_.begin(), cycles_since_last_contact_.end());
   return tensor;
 }
 
@@ -181,57 +152,6 @@ void UnitreeNeuralControl::pushJointVelocities(
   tensor.push_back(joint.hip.dq);
   tensor.push_back(joint.thigh.dq);
   tensor.push_back(joint.calf.dq);
-}
-
-void UnitreeNeuralControl::convertFootForceToContact(
-  const unitree_a1_legged_msgs::msg::FootForceState & foot)
-{
-  auto convertFootForce = [&](const int16_t force)
-    {
-      return (force < foot_contact_threshold_) ? 0.0f : 1.0f;
-    };
-  foot_contact_[FL] = convertFootForce(foot.front_left);
-  foot_contact_[FR] = convertFootForce(foot.front_right);
-  foot_contact_[RL] = convertFootForce(foot.rear_right);
-  foot_contact_[RR] = convertFootForce(foot.rear_left);
-}
-
-void UnitreeNeuralControl::updateCyclesSinceLastContact()
-{
-  for (size_t i = 0; i < foot_contact_.size(); i++) {
-    if (foot_contact_[i] == 1.0f) {
-      cycles_since_last_contact_[i] = 0.0f;
-    } else {
-      cycles_since_last_contact_[i] += 1.0f;
-    }
-  }
-}
-
-void UnitreeNeuralControl::updateCyclesSinceLastContact(uint32_t tick)
-{
-  auto tick_ms = static_cast<float>(tick) / 1000.0f;
-  for (size_t i = 0; i < foot_contact_.size(); i++) {
-    if (foot_contact_[i] == 1.0f) {
-      last_tick_[i] = tick_ms;
-      cycles_since_last_contact_[i] = 0.0f;
-    } else {
-      cycles_since_last_contact_[i] = tick_ms - last_tick_[i];
-    }
-  }
-}
-std::vector<float> UnitreeNeuralControl::convertToGravityVector(
-  const geometry_msgs::msg::Quaternion & orientation)
-{
-  Quaternionf imu_orientation(orientation.w, orientation.x, orientation.y, orientation.z);
-  // Define the gravity vector in world frame (assuming it's along -z)
-  Vector3f gravity_world(0.0, 0.0, -1.0);
-  // Rotate the gravity vector to the sensor frame
-  Vector3f gravity_sensor = imu_orientation * gravity_world;
-  gravity_sensor.normalize();
-
-  return {static_cast<float>(gravity_sensor.x()),
-    static_cast<float>(gravity_sensor.y()),
-    static_cast<float>(gravity_sensor.z())};
 }
 
 void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)

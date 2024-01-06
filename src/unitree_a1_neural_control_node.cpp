@@ -24,7 +24,6 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   nominal_joint_position_ = {
     -0.1f, 0.8f, -1.5f, 0.1f, 0.8f, -1.5f,
     -0.1f, 1.0f, -1.5f, 0.1f, 1.0f, -1.5f};
-  int16_t foot_contact_threshold = this->declare_parameter<int16_t>("foot_contact_threshold", 20);
   this->declare_parameter(
     "model_path",
     std::string("/home/mackop/inttention_ws/policy_network_trained.pt"));
@@ -33,7 +32,7 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   // Controller
   RCLCPP_INFO(this->get_logger(), "Loading model: '%s'", model_path.c_str());
   controller_ = std::make_unique<UnitreeNeuralControl>(
-    model_path, foot_contact_threshold,
+    model_path,
     nominal_joint_position_);
 
   msg_goal_ = std::make_shared<TwistStamped>();
