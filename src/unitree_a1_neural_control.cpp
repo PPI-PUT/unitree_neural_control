@@ -98,8 +98,6 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   tensor.push_back(goal->twist.linear.x);
   tensor.push_back(goal->twist.linear.y);
   tensor.push_back(goal->twist.angular.z);
-  // Last action
-  tensor.insert(tensor.end(), last_action_.begin(), last_action_.end());
   // Cycles since last contact
   return tensor;
 }
