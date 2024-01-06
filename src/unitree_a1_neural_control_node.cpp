@@ -31,38 +31,79 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   std::string model_path;
   this->get_parameter("model_path", model_path);
   // Controller
-  controller_ = std::make_unique<UnitreeNeuralControl>(foot_contact_threshold, nominal_joint_position_);
   RCLCPP_INFO(this->get_logger(), "Loading model: '%s'", model_path.c_str());
-  controller_->loadModel(model_path);
+  controller_ = std::make_unique<UnitreeNeuralControl>(
+    model_path, foot_contact_threshold,
+    nominal_joint_position_);
 
-  msg_goal_ = std::make_shared<geometry_msgs::msg::TwistStamped>();
-  msg_state_ = std::make_shared<unitree_a1_legged_msgs::msg::LowState>();
+  msg_goal_ = std::make_shared<TwistStamped>();
+  msg_state_ = std::make_shared<LowState>();
   // Subscribers and publishers
-  state_ = this->create_subscription<unitree_a1_legged_msgs::msg::LowState>(
+  state_ = this->create_subscription<LowState>(
     "~/input/state", 1,
-    std::bind(&UnitreeNeuralControlNode::stateCallback, this, std::placeholders::_1));
-  cmd_vel_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+    std::bind(&UnitreeNeuralControlNode::stateCallback, this, _1));
+  cmd_vel_ = this->create_subscription<TwistStamped>(
     "~/input/cmd_vel", 1,
-    std::bind(&UnitreeNeuralControlNode::cmdVelCallback, this, std::placeholders::_1));
-  cmd_ = this->create_publisher<unitree_a1_legged_msgs::msg::LowCmd>("~/output/command", 1);
-  control_loop_ = this->create_wall_timer(std::chrono::milliseconds(20), std::bind(&UnitreeNeuralControlNode::controlLoop, this));
+    std::bind(&UnitreeNeuralControlNode::cmdVelCallback, this, _1));
+  cmd_ = this->create_publisher<LowCmd>("~/output/command", 1);
+  control_loop_ =
+    this->create_wall_timer(
+    std::chrono::milliseconds(20),
+    std::bind(&UnitreeNeuralControlNode::controlLoop, this));
+  // Service
+  reset_ = this->create_service<Trigger>(
+    "~/service/reset",
+    std::bind(
+      &UnitreeNeuralControlNode::resetCallback, this, _1, _2));
+  // Debug
+  debug_ = false;
+  debug_tensor_ = this->create_publisher<DebugMsg>("~/debug/tensor", 1);
+  debug_action_ = this->create_publisher<DebugMsg>("~/debug/action", 1);
 }
 
 void UnitreeNeuralControlNode::controlLoop()
 {
   auto cmd = controller_->modelForward(msg_goal_, msg_state_);
-  cmd.header.stamp = this->now();
-  cmd_->publish(cmd);  
+  auto timestamp = this->now();
+  cmd.header.stamp = timestamp;
+  cmd_->publish(cmd);
+  // Debug
+  RCLCPP_INFO(this->get_logger(), "Debug: %d", debug_);
+  if (!debug_) {
+    return;
+  }
+  std::vector<float> input, output;
+  controller_->getInputAndOutput(input, output);
+  auto tensor_msg = DebugMsg();
+  tensor_msg.header.stamp = timestamp;
+  tensor_msg.dim = {1, static_cast<uint8_t>(input.size())};
+  tensor_msg.data = input;
+  debug_tensor_->publish(tensor_msg);
+  tensor_msg.header.stamp = timestamp;
+  tensor_msg.dim = {1, static_cast<uint8_t>(output.size())};
+  tensor_msg.data = output;
+  debug_action_->publish(tensor_msg);
+
 }
 
-void UnitreeNeuralControlNode::stateCallback(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+void UnitreeNeuralControlNode::stateCallback(LowState::SharedPtr msg)
 {
   msg_state_ = msg;
 }
 
-void UnitreeNeuralControlNode::cmdVelCallback(geometry_msgs::msg::TwistStamped::SharedPtr msg)
+void UnitreeNeuralControlNode::cmdVelCallback(TwistStamped::SharedPtr msg)
 {
   msg_goal_ = msg;
+}
+
+void UnitreeNeuralControlNode::resetCallback(
+  const std::shared_ptr<Trigger::Request> request,
+  std::shared_ptr<Trigger::Response> response)
+{
+  (void) request; // unused
+  controller_->resetController();
+  response->success = true;
+  debug_ = true;
 }
 
 

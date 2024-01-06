@@ -30,7 +30,7 @@
 #include <unitree_a1_legged_msgs/msg/low_cmd.hpp>
 #include <unitree_a1_legged_msgs/msg/leg_state.hpp>
 #include <unitree_a1_legged_msgs/msg/foot_force_state.hpp>
-
+#include <unitree_a1_legged_msgs/msg/debug_double_array.hpp>
 #include "unitree_a1_neural_control/visibility_control.hpp"
 
 using Vector3f = Eigen::Vector3f;
@@ -47,20 +47,25 @@ constexpr uint8_t PMSM_SERVO_MODE = 0x0A;
 class UNITREE_A1_NEURAL_CONTROL_PUBLIC UnitreeNeuralControl
 {
 public:
-  UnitreeNeuralControl(int16_t foot_threshold, std::array<float, 12> nominal_joint_position);
-  void loadModel(const std::string & filename);
+  UnitreeNeuralControl(
+    const std::string & filepath, int16_t foot_threshold, std::array<float,
+    12> nominal_joint_position);
   unitree_a1_legged_msgs::msg::LowCmd modelForward(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   void setFootContactThreshold(int16_t threshold);
   int16_t getFootContactThreshold() const;
+  void getInputAndOutput(std::vector<float> & input, std::vector<float> & output);
+  void resetController();
 
 private:
+  std::string model_path_;
   torch::jit::script::Module module_;
   int16_t foot_contact_threshold_;
   double scaled_factor_ = 0.25;
   std::array<float, 12> nominal_;
-  std::array<float, 12> last_action_;
+  std::vector<float> last_action_;
+  std::vector<float> last_state_;
   std::array<float, 4> foot_contact_;
   std::array<float, 4> cycles_since_last_contact_;
   std::array<float, 4> last_tick_;
@@ -77,6 +82,8 @@ private:
   void pushJointVelocities(
     std::vector<float> & tensor,
     const unitree_a1_legged_msgs::msg::LegState & joint);
+  void loadModel();
+  void initValues();
   void convertFootForceToContact(const unitree_a1_legged_msgs::msg::FootForceState & foot);
   void updateCyclesSinceLastContact();
   void updateCyclesSinceLastContact(uint32_t tick);

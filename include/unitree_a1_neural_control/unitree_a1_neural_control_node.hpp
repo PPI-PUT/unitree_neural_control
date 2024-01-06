@@ -19,10 +19,17 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include "unitree_a1_neural_control/unitree_a1_neural_control.hpp"
+#include <std_srvs/srv/trigger.hpp>
 
 namespace unitree_a1_neural_control
 {
 using UnitreeNeuralControlPtr = std::unique_ptr<unitree_a1_neural_control::UnitreeNeuralControl>;
+using LowState = unitree_a1_legged_msgs::msg::LowState;
+using LowCmd = unitree_a1_legged_msgs::msg::LowCmd;
+using TwistStamped = geometry_msgs::msg::TwistStamped;
+using Trigger = std_srvs::srv::Trigger;
+using DebugMsg = unitree_a1_legged_msgs::msg::DebugDoubleArray;
+using namespace std::placeholders;
 
 class UNITREE_A1_NEURAL_CONTROL_PUBLIC UnitreeNeuralControlNode : public rclcpp::Node
 {
@@ -31,16 +38,25 @@ public:
 
 private:
   UnitreeNeuralControlPtr controller_{nullptr};
-  geometry_msgs::msg::TwistStamped::SharedPtr msg_goal_;
-  unitree_a1_legged_msgs::msg::LowState::SharedPtr msg_state_;
-  rclcpp::Subscription<unitree_a1_legged_msgs::msg::LowState>::SharedPtr state_;
-  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_;
-  rclcpp::Publisher<unitree_a1_legged_msgs::msg::LowCmd>::SharedPtr cmd_;
-  rclcpp::TimerBase::SharedPtr control_loop_;
-  void stateCallback(unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
-  void cmdVelCallback(geometry_msgs::msg::TwistStamped::SharedPtr msg);
-  void controlLoop();
   std::array<float, 12> nominal_joint_position_;
+  TwistStamped::SharedPtr msg_goal_;
+  LowState::SharedPtr msg_state_;
+  rclcpp::TimerBase::SharedPtr control_loop_;
+  rclcpp::Publisher<LowCmd>::SharedPtr cmd_;
+  // Debug
+  bool debug_;
+  rclcpp::Publisher<DebugMsg>::SharedPtr debug_tensor_;
+  rclcpp::Publisher<DebugMsg>::SharedPtr debug_action_;
+  rclcpp::Subscription<LowState>::SharedPtr state_;
+  rclcpp::Subscription<TwistStamped>::SharedPtr cmd_vel_;
+  rclcpp::Service<Trigger>::SharedPtr reset_;
+
+  void stateCallback(LowState::SharedPtr msg);
+  void cmdVelCallback(TwistStamped::SharedPtr msg);
+  void resetCallback(
+    const std::shared_ptr<Trigger::Request> request,
+    std::shared_ptr<Trigger::Response> response);
+  void controlLoop();
 };
 }  // namespace unitree_a1_neural_control
 
