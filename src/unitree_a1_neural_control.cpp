@@ -75,7 +75,7 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   debug_msg->motor_state.rear_left.thigh.q = last_action_[10];
   debug_msg->motor_state.rear_left.calf.q = last_action_[11];
   // Convert msg to states
-  auto state = this->msgToTensor(goal, msg);
+  auto state = this->msgToTensor(goal, debug_msg);
   // Copy state to last state for debug purposes
   last_state_ = state;
   // Convert vector to tensor

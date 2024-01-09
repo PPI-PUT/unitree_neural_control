@@ -39,7 +39,8 @@ def launch_setup(context, *args, **kwargs):
             ("~/input/state", LaunchConfiguration("input_state_name")),
             ("~/output/command", LaunchConfiguration("output_cmd_name")),
             ("~/input/cmd_vel", LaunchConfiguration("input_cmd_vel_name")),
-            ("~/service/reset", LaunchConfiguration("service_reset_name"))
+            ("~/service/reset", LaunchConfiguration("service_reset_name")),
+            ("~/output/joint_states", LaunchConfiguration("output_joint_state_name")),
         ],
         output='screen',
         arguments=['--ros-args', '--log-level', 'info', '--enable-stdout-logs'],
@@ -63,6 +64,7 @@ def generate_launch_description():
     add_launch_arg('output_cmd_name', '/unitree_a1_legged/nn/cmd')
     add_launch_arg('input_cmd_vel_name', '/unitree_a1_legged/cmd_vel')
     add_launch_arg('service_reset_name', '/unitree_a1_legged/service/reset')
+    add_launch_arg('output_joint_state_name', '/unitree_a1_state_machine_node/output/nn/joint_states')
     return LaunchDescription([
         *declared_arguments,
         OpaqueFunction(function=launch_setup)
