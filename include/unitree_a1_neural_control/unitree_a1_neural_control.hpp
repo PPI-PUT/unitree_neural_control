@@ -68,6 +68,8 @@ private:
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   unitree_a1_legged_msgs::msg::LowCmd actionToMsg(const std::vector<float> & action);
+  std::vector<float> convertToGravityVector(
+    const geometry_msgs::msg::Quaternion & orientation);
   unitree_a1_legged_msgs::msg::QuadrupedState normalizeState(
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   std::array<float, 12> pushJointPositions(

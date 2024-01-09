@@ -89,6 +89,10 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   // Joint positions
   auto position = this->pushJointPositions(msg->motor_state);
   tensor.insert(tensor.end(), position.begin(), position.end());
+  // Imu angular velocity
+  tensor.push_back(msg->imu.angular_velocity.x);
+  tensor.push_back(msg->imu.angular_velocity.y);
+  tensor.push_back(msg->imu.angular_velocity.z);
   // Joint velocities
   this->pushJointVelocities(tensor, msg->motor_state.front_right);
   this->pushJointVelocities(tensor, msg->motor_state.front_left);
@@ -98,13 +102,17 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   tensor.push_back(goal->twist.linear.x);
   tensor.push_back(goal->twist.linear.y);
   tensor.push_back(goal->twist.angular.z);
-  // Cycles since last contact
+  auto gravity_vec =
+    this->convertToGravityVector(msg->imu.orientation);
+  tensor.insert(tensor.end(), gravity_vec.begin(), gravity_vec.end());
+
   return tensor;
 }
 
 unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::actionToMsg(
   const std::vector<float> & action)
 {
+  (void)action;
   unitree_a1_legged_msgs::msg::LowCmd cmd;
   cmd.motor_cmd.front_right.hip.q = action[0];
   cmd.motor_cmd.front_right.thigh.q = action[1];
@@ -151,11 +159,26 @@ void UnitreeNeuralControl::pushJointVelocities(
   tensor.push_back(joint.thigh.dq);
   tensor.push_back(joint.calf.dq);
 }
+std::vector<float> UnitreeNeuralControl::convertToGravityVector(
+  const geometry_msgs::msg::Quaternion & orientation)
+{
+  Quaternionf imu_orientation(orientation.w, orientation.x, orientation.y, orientation.z);
+  // Define the gravity vector in world frame (assuming it's along -z)
+  Vector3f gravity_world(0.0, 0.0, -1.0);
+  // Rotate the gravity vector to the sensor frame
+  Vector3f gravity_sensor = imu_orientation * gravity_world;
+  gravity_sensor.normalize();
+
+  return {static_cast<float>(gravity_sensor.x()),
+    static_cast<float>(gravity_sensor.y()),
+    static_cast<float>(gravity_sensor.z())};
+}
 
 void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)
 {
   cmd.common.mode = 0x0A;
-  cmd.common.kp = 20.0;
-  cmd.common.kd = 0.5;
+  cmd.common.kp = 40.0;
+  cmd.common.kd = 4.0;
+  // todo add common msg for different joints
 }
 }  // namespace unitree_a1_neural_control
