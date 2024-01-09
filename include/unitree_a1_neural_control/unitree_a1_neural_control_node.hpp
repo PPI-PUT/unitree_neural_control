@@ -20,6 +20,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include "unitree_a1_neural_control/unitree_a1_neural_control.hpp"
 #include <std_srvs/srv/trigger.hpp>
+#include "sensor_msgs/msg/joint_state.hpp"
 
 namespace unitree_a1_neural_control
 {
@@ -57,6 +58,8 @@ private:
     const std::shared_ptr<Trigger::Request> request,
     std::shared_ptr<Trigger::Response> response);
   void controlLoop();
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
+
 };
 }  // namespace unitree_a1_neural_control
 

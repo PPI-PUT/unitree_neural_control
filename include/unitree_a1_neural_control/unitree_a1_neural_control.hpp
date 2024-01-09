@@ -61,9 +61,11 @@ private:
   std::string model_path_;
   torch::jit::script::Module module_;
   double scaled_factor_ = 0.25;
+  double alpha_ = 0.1;
   std::array<float, 12> nominal_;
   std::vector<float> last_action_;
   std::vector<float> last_state_;
+
   std::vector<float> msgToTensor(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);

@@ -20,6 +20,8 @@ namespace unitree_a1_neural_control
 UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & options)
 : Node("unitree_neural_control", options)
 {
+  joint_state_publisher_ =
+    this->create_publisher<sensor_msgs::msg::JointState>("~/output/nn/joint_states", 1);
   // Parameters
   nominal_joint_position_ = {
     -0.1f, 0.8f, -1.5f, 0.1f, 0.8f, -1.5f,
@@ -81,6 +83,28 @@ void UnitreeNeuralControlNode::controlLoop()
   tensor_msg.dim = {1, static_cast<uint8_t>(output.size())};
   tensor_msg.data = output;
   debug_action_->publish(tensor_msg);
+
+
+  auto joints = sensor_msgs::msg::JointState();
+  joints.header.stamp = this->now();
+  joints.header.frame_id = "trunk";
+  joints.name = {"FR_hip_joint", "FR_thigh_joint", "FR_calf_joint", "FL_hip_joint",
+    "FL_thigh_joint", "FL_calf_joint", "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint",
+    "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint"};
+  joints.position = {
+    cmd.motor_cmd.front_right.hip.q,
+    cmd.motor_cmd.front_right.thigh.q,
+    cmd.motor_cmd.front_right.calf.q,
+    cmd.motor_cmd.front_left.hip.q,
+    cmd.motor_cmd.front_left.thigh.q,
+    cmd.motor_cmd.front_left.calf.q,
+    cmd.motor_cmd.rear_right.hip.q,
+    cmd.motor_cmd.rear_right.thigh.q,
+    cmd.motor_cmd.rear_right.calf.q,
+    cmd.motor_cmd.rear_left.hip.q,
+    cmd.motor_cmd.rear_left.thigh.q,
+    cmd.motor_cmd.rear_left.calf.q};
+  joint_state_publisher_->publish(joints);
 
 }
 

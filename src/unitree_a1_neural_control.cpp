@@ -27,6 +27,7 @@ UnitreeNeuralControl::UnitreeNeuralControl(
   nominal_ = nominal_joint_position;
   last_state_.resize(52);
   last_action_.resize(12);
+
   this->resetController();
 }
 
@@ -52,12 +53,27 @@ void UnitreeNeuralControl::initValues()
 {
   std::fill(last_state_.begin(), last_state_.end(), 0.0f);
   std::fill(last_action_.begin(), last_action_.end(), 0.0f);
+  std::copy(nominal_.begin(), nominal_.end(), last_action_.begin());
 }
 
 unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   const geometry_msgs::msg::TwistStamped::SharedPtr goal,
   const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
 {
+  (void)msg;
+  auto debug_msg = std::make_shared<unitree_a1_legged_msgs::msg::LowState>();
+  debug_msg->motor_state.front_right.hip.q = last_action_[0];
+  debug_msg->motor_state.front_right.thigh.q = last_action_[1];
+  debug_msg->motor_state.front_right.calf.q = last_action_[2];
+  debug_msg->motor_state.front_left.hip.q = last_action_[3];
+  debug_msg->motor_state.front_left.thigh.q = last_action_[4];
+  debug_msg->motor_state.front_left.calf.q = last_action_[5];
+  debug_msg->motor_state.rear_right.hip.q = last_action_[6];
+  debug_msg->motor_state.rear_right.thigh.q = last_action_[7];
+  debug_msg->motor_state.rear_right.calf.q = last_action_[8];
+  debug_msg->motor_state.rear_left.hip.q = last_action_[9];
+  debug_msg->motor_state.rear_left.thigh.q = last_action_[10];
+  debug_msg->motor_state.rear_left.calf.q = last_action_[11];
   // Convert msg to states
   auto state = this->msgToTensor(goal, msg);
   // Copy state to last state for debug purposes
@@ -69,14 +85,23 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   // Convert tensor to vector
   std::vector<float> action_vec(action.data_ptr<float>(),
     action.data_ptr<float>() + action.numel());
-  // Update last action
-  last_action_ = action_vec;
   // Take nominal position and add action
   std::transform(
     nominal_.begin(), nominal_.end(),
     action_vec.begin(), action_vec.begin(),
     [&](double a, double b)
     {return a + (b * scaled_factor_);});
+
+  // Debug
+  std::transform(
+    action_vec.begin(), action_vec.end(),
+    last_action_.begin(), last_action_.end(),
+    [&](double a, double b)
+    {return (1.0f - alpha_) * b + alpha_ * a;});
+
+  // Update last action
+  std::copy(action_vec.begin(), action_vec.end(), last_action_.begin());
+
   // Convert to message
   return this->actionToMsg(action_vec);
 }
