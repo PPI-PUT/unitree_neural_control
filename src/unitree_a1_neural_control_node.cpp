@@ -64,8 +64,8 @@ void UnitreeNeuralControlNode::controlLoop()
 {
   auto cmd = controller_->modelForward(msg_goal_, msg_state_);
   auto timestamp = this->now();
-  // cmd.header.stamp = timestamp;
-  // cmd_->publish(cmd);
+  cmd.header.stamp = timestamp;
+  cmd_->publish(cmd);
   // Debug
   if (!debug_) {
     return;
