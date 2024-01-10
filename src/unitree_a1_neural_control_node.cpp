@@ -29,10 +29,12 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
     std::string("/home/mackop/inttention_ws/policy_network_trained.pt"));
   std::string model_path;
   this->get_parameter("model_path", model_path);
+  int16_t foot_contact_threshold = this->declare_parameter<int16_t>("foot_contact_threshold", 20);
   // Controller
   RCLCPP_INFO(this->get_logger(), "Loading model: '%s'", model_path.c_str());
   controller_ = std::make_unique<UnitreeNeuralControl>(
     model_path,
+    foot_contact_threshold,
     nominal_joint_position_);
 
   msg_goal_ = std::make_shared<TwistStamped>();
@@ -58,6 +60,15 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   debug_ = false;
   debug_tensor_ = this->create_publisher<DebugMsg>("~/debug/tensor", 1);
   debug_action_ = this->create_publisher<DebugMsg>("~/debug/action", 1);
+  debug_wrench_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("~/debug/wrench", 1);
+  debug_foot_contact_fl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    "~/debug/foot_contact_fl", 1);
+  debug_foot_contact_fr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    "~/debug/foot_contact_fr", 1);
+  debug_foot_contact_rl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    "~/debug/foot_contact_rl", 1);
+  debug_foot_contact_rr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    "~/debug/foot_contact_rr", 1);
 }
 
 void UnitreeNeuralControlNode::controlLoop()
@@ -66,12 +77,25 @@ void UnitreeNeuralControlNode::controlLoop()
   auto timestamp = this->now();
   cmd.header.stamp = timestamp;
   cmd_->publish(cmd);
+  std::vector<float> input, output;
+  controller_->getInputAndOutput(input, output);
+  auto wrench_msg = geometry_msgs::msg::WrenchStamped();
+  wrench_msg.header.frame_id = "FL_foot";
+  wrench_msg.wrench.force.z = input[30];
+  debug_foot_contact_fl_->publish(wrench_msg);
+  wrench_msg.header.frame_id = "FR_foot";
+  wrench_msg.wrench.force.z = input[31];
+  debug_foot_contact_fr_->publish(wrench_msg);
+  wrench_msg.header.frame_id = "RL_foot";
+  wrench_msg.wrench.force.z = input[32];
+  debug_foot_contact_rl_->publish(wrench_msg);
+  wrench_msg.header.frame_id = "RR_foot";
+  wrench_msg.wrench.force.z = input[33];
+  debug_foot_contact_rr_->publish(wrench_msg);
   // Debug
   if (!debug_) {
     return;
   }
-  std::vector<float> input, output;
-  controller_->getInputAndOutput(input, output);
   auto tensor_msg = DebugMsg();
   tensor_msg.header.stamp = timestamp;
   tensor_msg.dim = {1, static_cast<uint8_t>(input.size())};
@@ -81,6 +105,12 @@ void UnitreeNeuralControlNode::controlLoop()
   tensor_msg.dim = {1, static_cast<uint8_t>(output.size())};
   tensor_msg.data = output;
   debug_action_->publish(tensor_msg);
+  wrench_msg.header.stamp = timestamp;
+  wrench_msg.header.frame_id = "imu_link";
+  wrench_msg.wrench.force.x = input[34];
+  wrench_msg.wrench.force.y = input[35];
+  wrench_msg.wrench.force.z = input[36];
+  debug_wrench_->publish(wrench_msg);
 
 }
 

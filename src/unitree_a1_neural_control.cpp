@@ -21,10 +21,12 @@ namespace unitree_a1_neural_control
 
 UnitreeNeuralControl::UnitreeNeuralControl(
   const std::string & filepath,
+  int16_t foot_threshold,
   std::array<float, 12> nominal_joint_position)
 {
   model_path_ = filepath;
   nominal_ = nominal_joint_position;
+  foot_contact_threshold_ = foot_threshold;
   last_state_.resize(52);
   last_action_.resize(12);
   this->resetController();
@@ -102,10 +104,19 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   tensor.push_back(goal->twist.linear.x);
   tensor.push_back(goal->twist.linear.y);
   tensor.push_back(goal->twist.angular.z);
+  // Convert foot force to contact
+  this->convertFootForceToContact(msg->foot_force);
+  // Foot contact
+  tensor.insert(tensor.end(), foot_contact_.begin(), foot_contact_.end());
+  // Gravity vector
   auto gravity_vec =
     this->convertToGravityVector(msg->imu.orientation);
   tensor.insert(tensor.end(), gravity_vec.begin(), gravity_vec.end());
-
+  // Last action
+  tensor.insert(tensor.end(), last_action_.begin(), last_action_.end());
+  // Cycles since last contact
+  this->updateCyclesSinceLastContact();
+  tensor.insert(tensor.end(), cycles_since_last_contact_.begin(), cycles_since_last_contact_.end());
   return tensor;
 }
 
@@ -173,11 +184,34 @@ std::vector<float> UnitreeNeuralControl::convertToGravityVector(
     static_cast<float>(gravity_sensor.y()),
     static_cast<float>(gravity_sensor.z())};
 }
+void UnitreeNeuralControl::convertFootForceToContact(
+  const unitree_a1_legged_msgs::msg::FootForceState & foot)
+{
+  auto convertFootForce = [&](const int16_t force)
+    {
+      return (force < foot_contact_threshold_) ? 0.0f : 1.0f;
+    };
+  foot_contact_[FL] = convertFootForce(foot.front_left);
+  foot_contact_[FR] = convertFootForce(foot.front_right);
+  foot_contact_[RL] = convertFootForce(foot.rear_right);
+  foot_contact_[RR] = convertFootForce(foot.rear_left);
+}
+
+void UnitreeNeuralControl::updateCyclesSinceLastContact()
+{
+  for (size_t i = 0; i < foot_contact_.size(); i++) {
+    if (foot_contact_[i] == 1.0f) {
+      cycles_since_last_contact_[i] = 0.0f;
+    } else {
+      cycles_since_last_contact_[i] += 1.0f;
+    }
+  }
+}
 
 void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)
 {
   cmd.common.mode = 0x0A;
-  cmd.common.kp = 40.0;
+  cmd.common.kp = 50.0;
   cmd.common.kd = 4.0;
   // todo add common msg for different joints
 }
