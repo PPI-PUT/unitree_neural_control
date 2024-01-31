@@ -56,9 +56,8 @@ private:
   rclcpp::Subscription<LowState>::SharedPtr state_;
   rclcpp::Subscription<TwistStamped>::SharedPtr cmd_vel_;
   rclcpp::Service<Trigger>::SharedPtr reset_;
-
-  void stateCallback(LowState::SharedPtr msg);
-  void cmdVelCallback(TwistStamped::SharedPtr msg);
+  void stateCallback(LowState::UniquePtr msg);
+  void cmdVelCallback(TwistStamped::UniquePtr msg);
   void resetCallback(
     const std::shared_ptr<Trigger::Request> request,
     std::shared_ptr<Trigger::Response> response);

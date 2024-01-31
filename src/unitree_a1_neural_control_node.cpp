@@ -60,7 +60,7 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   debug_ = false;
   debug_tensor_ = this->create_publisher<DebugMsg>("~/debug/tensor", 1);
   debug_action_ = this->create_publisher<DebugMsg>("~/debug/action", 1);
-  debug_wrench_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("~/debug/wrench", 1);
+  debug_wrench_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("~/debug/gravity", 1);
   debug_foot_contact_fl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
     "~/debug/foot_contact_fl", 1);
   debug_foot_contact_fr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
@@ -73,10 +73,15 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
 
 void UnitreeNeuralControlNode::controlLoop()
 {
+  // auto start = std::chrono::steady_clock::now();
   auto cmd = controller_->modelForward(msg_goal_, msg_state_);
+  // auto end = std::chrono::steady_clock::now();
+  // auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  // auto cmd = std::make_unique<LowCmd>();
   auto timestamp = this->now();
-  cmd.header.stamp = timestamp;
-  cmd_->publish(cmd);
+  cmd->header.stamp = timestamp;
+  // cmd->header_elapsed.stamp = msg_state_->header.stamp;
+  cmd_->publish(std::move(cmd));
   std::vector<float> input, output;
   controller_->getInputAndOutput(input, output);
   auto wrench_msg = geometry_msgs::msg::WrenchStamped();
@@ -97,7 +102,7 @@ void UnitreeNeuralControlNode::controlLoop()
     return;
   }
   auto tensor_msg = DebugMsg();
-  tensor_msg.header.stamp = timestamp;
+  tensor_msg.header.stamp = msg_state_->header.stamp;
   tensor_msg.dim = {1, static_cast<uint8_t>(input.size())};
   tensor_msg.data = input;
   debug_tensor_->publish(tensor_msg);
@@ -114,14 +119,14 @@ void UnitreeNeuralControlNode::controlLoop()
 
 }
 
-void UnitreeNeuralControlNode::stateCallback(LowState::SharedPtr msg)
+void UnitreeNeuralControlNode::stateCallback(LowState::UniquePtr msg)
 {
-  msg_state_ = msg;
+  msg_state_ = std::move(msg);
 }
 
-void UnitreeNeuralControlNode::cmdVelCallback(TwistStamped::SharedPtr msg)
+void UnitreeNeuralControlNode::cmdVelCallback(TwistStamped::UniquePtr msg)
 {
-  msg_goal_ = msg;
+  msg_goal_ = std::move(msg);
 }
 
 void UnitreeNeuralControlNode::resetCallback(

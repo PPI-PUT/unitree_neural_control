@@ -56,9 +56,9 @@ void UnitreeNeuralControl::initValues()
   std::fill(last_action_.begin(), last_action_.end(), 0.0f);
 }
 
-unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
-  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+std::unique_ptr<unitree_a1_legged_msgs::msg::LowCmd> UnitreeNeuralControl::modelForward(
+  geometry_msgs::msg::TwistStamped::SharedPtr goal,
+  unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
 {
   // Convert msg to states
   auto state = this->msgToTensor(goal, msg);
@@ -84,8 +84,8 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
 }
 
 std::vector<float> UnitreeNeuralControl::msgToTensor(
-  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+  geometry_msgs::msg::TwistStamped::SharedPtr goal,
+  unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
 {
   std::vector<float> tensor;
   // Joint positions
@@ -120,24 +120,23 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   return tensor;
 }
 
-unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::actionToMsg(
+std::unique_ptr<unitree_a1_legged_msgs::msg::LowCmd> UnitreeNeuralControl::actionToMsg(
   const std::vector<float> & action)
 {
-  (void)action;
-  unitree_a1_legged_msgs::msg::LowCmd cmd;
-  cmd.motor_cmd.front_right.hip.q = action[0];
-  cmd.motor_cmd.front_right.thigh.q = action[1];
-  cmd.motor_cmd.front_right.calf.q = action[2];
-  cmd.motor_cmd.front_left.hip.q = action[3];
-  cmd.motor_cmd.front_left.thigh.q = action[4];
-  cmd.motor_cmd.front_left.calf.q = action[5];
-  cmd.motor_cmd.rear_right.hip.q = action[6];
-  cmd.motor_cmd.rear_right.thigh.q = action[7];
-  cmd.motor_cmd.rear_right.calf.q = action[8];
-  cmd.motor_cmd.rear_left.hip.q = action[9];
-  cmd.motor_cmd.rear_left.thigh.q = action[10];
-  cmd.motor_cmd.rear_left.calf.q = action[11];
-  this->initControlParams(cmd);
+  auto cmd = std::make_unique<unitree_a1_legged_msgs::msg::LowCmd>();
+  cmd->motor_cmd.front_right.hip.q = action[0];
+  cmd->motor_cmd.front_right.thigh.q = action[1];
+  cmd->motor_cmd.front_right.calf.q = action[2];
+  cmd->motor_cmd.front_left.hip.q = action[3];
+  cmd->motor_cmd.front_left.thigh.q = action[4];
+  cmd->motor_cmd.front_left.calf.q = action[5];
+  cmd->motor_cmd.rear_right.hip.q = action[6];
+  cmd->motor_cmd.rear_right.thigh.q = action[7];
+  cmd->motor_cmd.rear_right.calf.q = action[8];
+  cmd->motor_cmd.rear_left.hip.q = action[9];
+  cmd->motor_cmd.rear_left.thigh.q = action[10];
+  cmd->motor_cmd.rear_left.calf.q = action[11];
+  cmd->common = this->initControlParams();
   return cmd;
 }
 std::array<float, 12> UnitreeNeuralControl::pushJointPositions(
@@ -208,11 +207,13 @@ void UnitreeNeuralControl::updateCyclesSinceLastContact()
   }
 }
 
-void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)
+unitree_a1_legged_msgs::msg::CommonMotorCmd UnitreeNeuralControl::initControlParams()
 {
-  cmd.common.mode = 0x0A;
-  cmd.common.kp = 50.0;
-  cmd.common.kd = 4.0;
+  unitree_a1_legged_msgs::msg::CommonMotorCmd common;
+  common.mode = 0x0A;
+  common.kp = 50.0;
+  common.kd = 4.0;
   // todo add common msg for different joints
+  return common;
 }
 }  // namespace unitree_a1_neural_control
