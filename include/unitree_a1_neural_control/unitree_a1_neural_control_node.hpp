@@ -20,6 +20,7 @@
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include "unitree_a1_neural_control/unitree_a1_neural_control.hpp"
 #include <std_srvs/srv/trigger.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 
 namespace unitree_a1_neural_control
 {
@@ -47,6 +48,11 @@ private:
   bool debug_;
   rclcpp::Publisher<DebugMsg>::SharedPtr debug_tensor_;
   rclcpp::Publisher<DebugMsg>::SharedPtr debug_action_;
+  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_wrench_;
+  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_rl_;
+  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_rr_;
+  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_fl_;
+  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_fr_;
   rclcpp::Subscription<LowState>::SharedPtr state_;
   rclcpp::Subscription<TwistStamped>::SharedPtr cmd_vel_;
   rclcpp::Service<Trigger>::SharedPtr reset_;

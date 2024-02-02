@@ -48,8 +48,7 @@ class UNITREE_A1_NEURAL_CONTROL_PUBLIC UnitreeNeuralControl
 {
 public:
   UnitreeNeuralControl(
-    const std::string & filepath, int16_t foot_threshold, std::array<float,
-    12> nominal_joint_position);
+    const std::string & filepath, int16_t foot_threshold, std::array<float, 12> nominal_joint_position);
   unitree_a1_legged_msgs::msg::LowCmd modelForward(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
@@ -61,20 +60,19 @@ public:
 private:
   std::string model_path_;
   torch::jit::script::Module module_;
-  int16_t foot_contact_threshold_;
   double scaled_factor_ = 0.25;
+  int16_t foot_contact_threshold_;
   std::array<float, 12> nominal_;
-  std::vector<float> last_action_;
-  std::vector<float> last_state_;
   std::array<float, 4> foot_contact_;
   std::array<float, 4> cycles_since_last_contact_;
-  std::array<float, 4> last_tick_;
+  std::vector<float> last_action_;
+  std::vector<float> last_state_;
   std::vector<float> msgToTensor(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
+  unitree_a1_legged_msgs::msg::LowCmd actionToMsg(const std::vector<float> & action);
   std::vector<float> convertToGravityVector(
     const geometry_msgs::msg::Quaternion & orientation);
-  unitree_a1_legged_msgs::msg::LowCmd actionToMsg(const std::vector<float> & action);
   unitree_a1_legged_msgs::msg::QuadrupedState normalizeState(
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   std::array<float, 12> pushJointPositions(
@@ -83,10 +81,9 @@ private:
     std::vector<float> & tensor,
     const unitree_a1_legged_msgs::msg::LegState & joint);
   void loadModel();
-  void initValues();
   void convertFootForceToContact(const unitree_a1_legged_msgs::msg::FootForceState & foot);
   void updateCyclesSinceLastContact();
-  void updateCyclesSinceLastContact(uint32_t tick);
+  void initValues();
   void initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd_msg);
 };
 
