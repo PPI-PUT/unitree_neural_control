@@ -56,11 +56,14 @@ public:
   int16_t getFootContactThreshold() const;
   void getInputAndOutput(std::vector<float> & input, std::vector<float> & output);
   void resetController();
+  void setGains(double kp, double kd);
 
 private:
   std::string model_path_;
   torch::jit::script::Module module_;
   double scaled_factor_ = 0.25;
+  double kp_ = 50.0;
+  double kd_ = 4.0;
   int16_t foot_contact_threshold_;
   std::array<float, 12> nominal_;
   std::array<float, 4> foot_contact_;

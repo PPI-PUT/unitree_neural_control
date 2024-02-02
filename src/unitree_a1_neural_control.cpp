@@ -211,8 +211,14 @@ void UnitreeNeuralControl::updateCyclesSinceLastContact()
 void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)
 {
   cmd.common.mode = 0x0A;
-  cmd.common.kp = 50.0;
-  cmd.common.kd = 4.0;
+  cmd.common.kp = kp_;
+  cmd.common.kd = kd_;
   // todo add common msg for different joints
 }
+void UnitreeNeuralControl::setGains(double kp, double kd)
+{
+  kp_ = kp;
+  kd_ = kd;
+}
+
 }  // namespace unitree_a1_neural_control
