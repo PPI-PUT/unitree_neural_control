@@ -83,6 +83,34 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   return this->actionToMsg(action_vec);
 }
 
+unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
+  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
+  const sensor_msgs::msg::Imu::SharedPtr imu,
+  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+{
+  // Convert msg to states
+  auto state = this->msgToTensor(goal, imu, msg);
+  // Copy state to last state for debug purposes
+  last_state_ = state;
+  // Convert vector to tensor
+  auto stateTensor = torch::from_blob(state.data(), {1, static_cast<long>(state.size())});
+  // Forward pass
+  at::Tensor action = module_.forward({stateTensor}).toTensor();
+  // Convert tensor to vector
+  std::vector<float> action_vec(action.data_ptr<float>(),
+    action.data_ptr<float>() + action.numel());
+  // Update last action
+  last_action_ = action_vec;
+  // Take nominal position and add action
+  std::transform(
+    nominal_.begin(), nominal_.end(),
+    action_vec.begin(), action_vec.begin(),
+    [&](double a, double b)
+    {return a + (b * scaled_factor_);});
+  // Convert to message
+  return this->actionToMsg(action_vec);
+}
+
 std::vector<float> UnitreeNeuralControl::msgToTensor(
   const geometry_msgs::msg::TwistStamped::SharedPtr goal,
   const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
@@ -111,6 +139,43 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   // Gravity vector
   auto gravity_vec =
     this->convertToGravityVector(msg->imu.orientation);
+  tensor.insert(tensor.end(), gravity_vec.begin(), gravity_vec.end());
+  // Last action
+  tensor.insert(tensor.end(), last_action_.begin(), last_action_.end());
+  // Cycles since last contact
+  this->updateCyclesSinceLastContact();
+  tensor.insert(tensor.end(), cycles_since_last_contact_.begin(), cycles_since_last_contact_.end());
+  return tensor;
+}
+std::vector<float> UnitreeNeuralControl::msgToTensor(
+  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
+  const sensor_msgs::msg::Imu::SharedPtr imu,
+  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+{
+  std::vector<float> tensor;
+  // Joint positions
+  auto position = this->pushJointPositions(msg->motor_state);
+  tensor.insert(tensor.end(), position.begin(), position.end());
+  // Imu angular velocity
+  tensor.push_back(imu->angular_velocity.x);
+  tensor.push_back(imu->angular_velocity.y);
+  tensor.push_back(imu->angular_velocity.z);
+  // Joint velocities
+  this->pushJointVelocities(tensor, msg->motor_state.front_right);
+  this->pushJointVelocities(tensor, msg->motor_state.front_left);
+  this->pushJointVelocities(tensor, msg->motor_state.rear_right);
+  this->pushJointVelocities(tensor, msg->motor_state.rear_left);
+  // Goal velocity
+  tensor.push_back(goal->twist.linear.x);
+  tensor.push_back(goal->twist.linear.y);
+  tensor.push_back(goal->twist.angular.z);
+  // Convert foot force to contact
+  this->convertFootForceToContact(msg->foot_force);
+  // Foot contact
+  tensor.insert(tensor.end(), foot_contact_.begin(), foot_contact_.end());
+  // Gravity vector
+  auto gravity_vec =
+    this->convertToGravityVector(imu->orientation);
   tensor.insert(tensor.end(), gravity_vec.begin(), gravity_vec.end());
   // Last action
   tensor.insert(tensor.end(), last_action_.begin(), last_action_.end());
@@ -174,10 +239,12 @@ std::vector<float> UnitreeNeuralControl::convertToGravityVector(
   const geometry_msgs::msg::Quaternion & orientation)
 {
   Quaternionf imu_orientation(orientation.w, orientation.x, orientation.y, orientation.z);
+  // to rotation matrix 
+  auto imu_rotation = imu_orientation.toRotationMatrix();
   // Define the gravity vector in world frame (assuming it's along -z)
   Vector3f gravity_world(0.0, 0.0, -1.0);
   // Rotate the gravity vector to the sensor frame
-  Vector3f gravity_sensor = imu_orientation * gravity_world;
+  Vector3f gravity_sensor = imu_rotation * gravity_world;
   gravity_sensor.normalize();
 
   return {static_cast<float>(gravity_sensor.x()),

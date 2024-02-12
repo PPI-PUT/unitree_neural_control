@@ -1,6 +1,7 @@
 /**:
   ros__parameters:
-    model_path: "/home/mackop/intention_policy/policy_obs_qpos_qvel_angvel (1).pt"
+    model_path: "/home/mackop/intention_policy/deployment_network_id1.pt"
     foot_contact_threshold: 1
     kp: 50.0
     kd: 4.0
+    publish_debug: false

@@ -32,6 +32,7 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   double kp = this->declare_parameter<double>("kp", 50.0);
   double kd = this->declare_parameter<double>("kd", 4.0);
   int16_t foot_contact_threshold = this->declare_parameter<int16_t>("foot_contact_threshold", 20);
+  publish_debug_ = this->declare_parameter<bool>("publish_debug", false);
   // Controller
   RCLCPP_INFO(this->get_logger(), "Loading model: '%s'", model_path.c_str());
   controller_ = std::make_unique<UnitreeNeuralControl>(
@@ -39,17 +40,27 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
     foot_contact_threshold,
     nominal_joint_position_);
   controller_->setGains(kp, kd);
-
   msg_goal_ = std::make_shared<TwistStamped>();
   msg_state_ = std::make_shared<LowState>();
+  msg_imu_ = std::make_shared<Imu>();
   // Subscribers and publishers
-  state_ = this->create_subscription<LowState>(
-    "~/input/state", 1,
-    std::bind(&UnitreeNeuralControlNode::stateCallback, this, _1));
+  rmw_qos_profile_t qos_filter = rmw_qos_profile_default;
+  qos_filter.depth = 1;
+  qos_filter.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+  qos_filter.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+  imu_sub_.reset(new SubscriberImu(this, "~/input/imu", qos_filter));
+  state_sub_.reset(new SubscriberLowState(this, "~/input/state", qos_filter));
+  sync_.reset(
+    new Synchronizer(
+      SyncPolicy(2), *imu_sub_, *state_sub_));
+  sync_->registerCallback(&UnitreeNeuralControlNode::imuStateCallback, this);
   cmd_vel_ = this->create_subscription<TwistStamped>(
     "~/input/cmd_vel", 1,
     std::bind(&UnitreeNeuralControlNode::cmdVelCallback, this, _1));
-  cmd_ = this->create_publisher<LowCmd>("~/output/command", 1);
+  auto qos = rclcpp::QoS(1);
+  qos.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+  qos.durability_volatile();
+  cmd_ = this->create_publisher<LowCmd>("~/output/command", qos);
   control_loop_ =
     this->create_wall_timer(
     std::chrono::milliseconds(20),
@@ -60,30 +71,70 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
     std::bind(
       &UnitreeNeuralControlNode::resetCallback, this, _1, _2));
   // Debug
-  debug_ = false;
-  debug_tensor_ = this->create_publisher<DebugMsg>("~/debug/tensor", 1);
-  debug_action_ = this->create_publisher<DebugMsg>("~/debug/action", 1);
-  debug_wrench_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("~/debug/wrench", 1);
-  debug_foot_contact_fl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
-    "~/debug/foot_contact_fl", 1);
-  debug_foot_contact_fr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
-    "~/debug/foot_contact_fr", 1);
-  debug_foot_contact_rl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
-    "~/debug/foot_contact_rl", 1);
-  debug_foot_contact_rr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
-    "~/debug/foot_contact_rr", 1);
+  if (publish_debug_) {
+    debug_ = false;
+    debug_tensor_ = this->create_publisher<DebugMsg>("~/debug/tensor", 1);
+    debug_action_ = this->create_publisher<DebugMsg>("~/debug/action", 1);
+    debug_wrench_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("~/debug/wrench", 1);
+    debug_foot_contact_fl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+      "~/debug/foot_contact_fl", 1);
+    debug_foot_contact_fr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+      "~/debug/foot_contact_fr", 1);
+    debug_foot_contact_rl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+      "~/debug/foot_contact_rl", 1);
+    debug_foot_contact_rr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+      "~/debug/foot_contact_rr", 1);
+  }
+
 }
 
 void UnitreeNeuralControlNode::controlLoop()
 {
-  auto cmd = controller_->modelForward(msg_goal_, msg_state_);
-  auto timestamp = this->now();
-  cmd.header.stamp = timestamp;
+  // LowState::SharedPtr local_state;
+  // {
+  //   std::lock_guard<std::mutex> lock(state_mutex_);
+  //   local_state = msg_state_;
+  // }
+  auto cmd = controller_->modelForward(msg_goal_, msg_imu_, msg_state_);
+  cmd.header.stamp = this->now();
   cmd_->publish(cmd);
+  if(publish_debug_) {
+    publishDebugMsg();
+  }
+}
+
+void UnitreeNeuralControlNode::imuStateCallback(Imu::SharedPtr imu, LowState::SharedPtr msg)
+{
+  // std::lock_guard<std::mutex> lock(state_mutex_);
+  msg_state_ = msg;
+  msg_imu_ = imu;
+}
+
+void UnitreeNeuralControlNode::cmdVelCallback(TwistStamped::SharedPtr msg)
+{
+  msg_goal_ = msg;
+}
+
+void UnitreeNeuralControlNode::resetCallback(
+  const std::shared_ptr<Trigger::Request> request,
+  std::shared_ptr<Trigger::Response> response)
+{
+  (void) request; // unused
+  controller_->resetController();
+  response->success = true;
+  if (publish_debug_) {
+    debug_ = true;
+  }
+
+}
+
+void UnitreeNeuralControlNode::publishDebugMsg()
+{
+  auto timestamp = this->now();
   std::vector<float> input, output;
   controller_->getInputAndOutput(input, output);
   auto wrench_msg = geometry_msgs::msg::WrenchStamped();
-  wrench_msg.header.frame_id = "FL_foot";
+  wrench_msg.header.frame_id = "imu_link";
   wrench_msg.wrench.force.z = input[30];
   debug_foot_contact_fl_->publish(wrench_msg);
   wrench_msg.header.frame_id = "FR_foot";
@@ -114,27 +165,6 @@ void UnitreeNeuralControlNode::controlLoop()
   wrench_msg.wrench.force.y = input[35];
   wrench_msg.wrench.force.z = input[36];
   debug_wrench_->publish(wrench_msg);
-
-}
-
-void UnitreeNeuralControlNode::stateCallback(LowState::SharedPtr msg)
-{
-  msg_state_ = msg;
-}
-
-void UnitreeNeuralControlNode::cmdVelCallback(TwistStamped::SharedPtr msg)
-{
-  msg_goal_ = msg;
-}
-
-void UnitreeNeuralControlNode::resetCallback(
-  const std::shared_ptr<Trigger::Request> request,
-  std::shared_ptr<Trigger::Response> response)
-{
-  (void) request; // unused
-  controller_->resetController();
-  response->success = true;
-  debug_ = true;
 }
 
 

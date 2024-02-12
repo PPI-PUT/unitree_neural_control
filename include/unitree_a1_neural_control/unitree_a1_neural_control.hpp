@@ -48,9 +48,14 @@ class UNITREE_A1_NEURAL_CONTROL_PUBLIC UnitreeNeuralControl
 {
 public:
   UnitreeNeuralControl(
-    const std::string & filepath, int16_t foot_threshold, std::array<float, 12> nominal_joint_position);
+    const std::string & filepath, int16_t foot_threshold, std::array<float,
+    12> nominal_joint_position);
   unitree_a1_legged_msgs::msg::LowCmd modelForward(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
+    const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
+  unitree_a1_legged_msgs::msg::LowCmd modelForward(
+    const geometry_msgs::msg::TwistStamped::SharedPtr goal,
+    const sensor_msgs::msg::Imu::SharedPtr imu,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   void setFootContactThreshold(int16_t threshold);
   int16_t getFootContactThreshold() const;
@@ -72,6 +77,10 @@ private:
   std::vector<float> last_state_;
   std::vector<float> msgToTensor(
     const geometry_msgs::msg::TwistStamped::SharedPtr goal,
+    const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
+  std::vector<float> msgToTensor(
+    const geometry_msgs::msg::TwistStamped::SharedPtr goal,
+    const sensor_msgs::msg::Imu::SharedPtr imu,
     const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg);
   unitree_a1_legged_msgs::msg::LowCmd actionToMsg(const std::vector<float> & action);
   std::vector<float> convertToGravityVector(
