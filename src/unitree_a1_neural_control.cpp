@@ -239,7 +239,7 @@ std::vector<float> UnitreeNeuralControl::convertToGravityVector(
   const geometry_msgs::msg::Quaternion & orientation)
 {
   Quaternionf imu_orientation(orientation.w, orientation.x, orientation.y, orientation.z);
-  // to rotation matrix 
+  // to rotation matrix
   auto imu_rotation = imu_orientation.toRotationMatrix();
   // Define the gravity vector in world frame (assuming it's along -z)
   Vector3f gravity_world(0.0, 0.0, -1.0);
@@ -260,18 +260,39 @@ void UnitreeNeuralControl::convertFootForceToContact(
     };
   foot_contact_[FL] = convertFootForce(foot.front_left);
   foot_contact_[FR] = convertFootForce(foot.front_right);
-  foot_contact_[RL] = convertFootForce(foot.rear_right);
-  foot_contact_[RR] = convertFootForce(foot.rear_left);
+  foot_contact_[RL] = convertFootForce(foot.rear_left);
+  foot_contact_[RR] = convertFootForce(foot.rear_right);
 }
 
 void UnitreeNeuralControl::updateCyclesSinceLastContact()
 {
-  for (size_t i = 0; i < foot_contact_.size(); i++) {
-    if (foot_contact_[i] == 1.0f) {
-      cycles_since_last_contact_[i] = 0.0f;
-    } else {
-      cycles_since_last_contact_[i] += 1.0f;
-    }
+  // for (size_t i = 0; i < foot_contact_.size(); i++) {
+  //   if (foot_contact_[i] == 1.0f) {
+  //     cycles_since_last_contact_[i] = 0.0f;
+  //   } else {
+  //     cycles_since_last_contact_[i] += 1.0f;
+  //   }
+  // } 
+  // shit order:
+  if (foot_contact_[FR] == 1.0f) {
+    cycles_since_last_contact_[0] = 0.0f;
+  } else {
+    cycles_since_last_contact_[0] += 1.0f;
+  }
+  if (foot_contact_[FL] == 1.0f) {
+    cycles_since_last_contact_[1] = 0.0f;
+  } else {
+    cycles_since_last_contact_[1] += 1.0f;
+  }
+  if (foot_contact_[RR] == 1.0f) {
+    cycles_since_last_contact_[2] = 0.0f;
+  } else {
+    cycles_since_last_contact_[2] += 1.0f;
+  }
+  if (foot_contact_[RL] == 1.0f) {
+    cycles_since_last_contact_[3] = 0.0f;
+  } else {
+    cycles_since_last_contact_[3] += 1.0f;
   }
 }
 

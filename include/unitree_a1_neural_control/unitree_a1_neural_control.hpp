@@ -40,7 +40,7 @@ namespace unitree_a1_neural_control
 {
 constexpr size_t FL = 0;
 constexpr size_t FR = 1;
-constexpr size_t RL = 2;
+constexpr size_t RL = 2 ;
 constexpr size_t RR = 3;
 constexpr uint8_t PMSM_SERVO_MODE = 0x0A;
 
