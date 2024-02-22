@@ -38,6 +38,7 @@ using Synchronizer = message_filters::Synchronizer<SyncPolicy>;
 using SubscriberLowState = message_filters::Subscriber<LowState>;
 using SubscriberImu = message_filters::Subscriber<Imu>;
 using WrenchStamped = geometry_msgs::msg::WrenchStamped;
+using ControllerType = unitree_a1_legged_msgs::msg::ControllerType;
 
 using namespace std::placeholders;
 
@@ -48,6 +49,7 @@ public:
 
 private:
   UnitreeNeuralControlPtr controller_{nullptr};
+  double max_age_cmd_vel_;
   std::array<float, 12> nominal_joint_position_;
   TwistStamped::SharedPtr msg_goal_;
   LowState::SharedPtr msg_state_;

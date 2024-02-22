@@ -27,6 +27,7 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
   this->declare_parameter(
     "model_path",
     std::string("/home/mackop/inttention_ws/policy_network_trained.pt"));
+  max_age_cmd_vel_ = this->declare_parameter<double>("max_age_cmd_vel", 0.2);
   std::string model_path;
   this->get_parameter("model_path", model_path);
   double kp = this->declare_parameter<double>("kp", 50.0);
@@ -90,29 +91,35 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
 
 void UnitreeNeuralControlNode::controlLoop()
 {
-  // LowState::SharedPtr local_state;
-  // {
-  //   std::lock_guard<std::mutex> lock(state_mutex_);
-  //   local_state = msg_state_;
-  // }
-  auto cmd = controller_->modelForward(msg_goal_, msg_imu_, msg_state_);
-  cmd.header.stamp = this->now();
-  cmd_->publish(cmd);
-  if(publish_debug_) {
+  if (msg_goal_->controller_type.type == ControllerType::NEURAL) {
+    auto cmd = controller_->modelForward(msg_goal_, msg_imu_, msg_state_);
+    cmd.header.stamp = this->now();
+    cmd_->publish(cmd);
+  }
+  if (publish_debug_) {
     publishDebugMsg();
   }
 }
 
 void UnitreeNeuralControlNode::imuStateCallback(Imu::SharedPtr imu, LowState::SharedPtr msg)
 {
-  // std::lock_guard<std::mutex> lock(state_mutex_);
   msg_state_ = msg;
   msg_imu_ = imu;
 }
 
 void UnitreeNeuralControlNode::cmdVelCallback(TwistStamped::SharedPtr msg)
 {
-  msg_goal_ = msg;
+  double age = (this->get_clock()->now() - msg->header.stamp).seconds();
+
+  if (age <= max_age_cmd_vel_) {
+    msg_goal_ = msg;
+  } else {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 1000, "Received old cmd_vel message");
+    msg_goal_->twist.linear.x = 0.0;
+    msg_goal_->twist.linear.y = 0.0;
+    msg_goal_->twist.angular.z = 0.0;
+    msg_goal_->controller_type.type = ControllerType::WARN_DELAY;
+  }
 }
 
 void UnitreeNeuralControlNode::resetCallback(
@@ -122,10 +129,6 @@ void UnitreeNeuralControlNode::resetCallback(
   (void) request; // unused
   controller_->resetController();
   response->success = true;
-  if (publish_debug_) {
-    debug_ = true;
-  }
-
 }
 
 void UnitreeNeuralControlNode::publishDebugMsg()
@@ -146,10 +149,6 @@ void UnitreeNeuralControlNode::publishDebugMsg()
   wrench_msg.header.frame_id = "RR_foot";
   wrench_msg.wrench.force.z = input[33];
   debug_foot_contact_rr_->publish(wrench_msg);
-  // Debug
-  if (!debug_) {
-    return;
-  }
   auto tensor_msg = DebugMsg();
   tensor_msg.header.stamp = timestamp;
   tensor_msg.dim = {1, static_cast<uint8_t>(input.size())};
