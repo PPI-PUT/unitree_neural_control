@@ -75,14 +75,14 @@ UnitreeNeuralControlNode::UnitreeNeuralControlNode(const rclcpp::NodeOptions & o
     debug_ = false;
     debug_tensor_ = this->create_publisher<DebugMsg>("~/debug/tensor", 1);
     debug_action_ = this->create_publisher<DebugMsg>("~/debug/action", 1);
-    debug_wrench_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>("~/debug/wrench", 1);
-    debug_foot_contact_fl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    debug_wrench_ = this->create_publisher<WrenchStamped>("~/debug/wrench", 1);
+    debug_foot_contact_fl_ = this->create_publisher<WrenchStamped>(
       "~/debug/foot_contact_fl", 1);
-    debug_foot_contact_fr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    debug_foot_contact_fr_ = this->create_publisher<WrenchStamped>(
       "~/debug/foot_contact_fr", 1);
-    debug_foot_contact_rl_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    debug_foot_contact_rl_ = this->create_publisher<WrenchStamped>(
       "~/debug/foot_contact_rl", 1);
-    debug_foot_contact_rr_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+    debug_foot_contact_rr_ = this->create_publisher<WrenchStamped>(
       "~/debug/foot_contact_rr", 1);
   }
 
@@ -133,7 +133,7 @@ void UnitreeNeuralControlNode::publishDebugMsg()
   auto timestamp = this->now();
   std::vector<float> input, output;
   controller_->getInputAndOutput(input, output);
-  auto wrench_msg = geometry_msgs::msg::WrenchStamped();
+  auto wrench_msg = WrenchStamped();
   wrench_msg.header.frame_id = "imu_link";
   wrench_msg.wrench.force.z = input[30];
   debug_foot_contact_fl_->publish(wrench_msg);

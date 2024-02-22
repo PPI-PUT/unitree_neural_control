@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
 #include "unitree_a1_neural_control/unitree_a1_neural_control.hpp"
 #include <std_srvs/srv/trigger.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
@@ -31,13 +30,14 @@ using UnitreeNeuralControlPtr = std::unique_ptr<unitree_a1_neural_control::Unitr
 using LowState = unitree_a1_legged_msgs::msg::LowState;
 using Imu = sensor_msgs::msg::Imu;
 using LowCmd = unitree_a1_legged_msgs::msg::LowCmd;
-using TwistStamped = geometry_msgs::msg::TwistStamped;
+using TwistStamped = unitree_a1_legged_msgs::msg::TwistStamped;
 using Trigger = std_srvs::srv::Trigger;
 using DebugMsg = unitree_a1_legged_msgs::msg::DebugDoubleArray;
 using SyncPolicy = message_filters::sync_policies::ApproximateTime<Imu, LowState>;
 using Synchronizer = message_filters::Synchronizer<SyncPolicy>;
 using SubscriberLowState = message_filters::Subscriber<LowState>;
 using SubscriberImu = message_filters::Subscriber<Imu>;
+using WrenchStamped = geometry_msgs::msg::WrenchStamped;
 
 using namespace std::placeholders;
 
@@ -72,11 +72,11 @@ private:
   bool publish_debug_;
   rclcpp::Publisher<DebugMsg>::SharedPtr debug_tensor_;
   rclcpp::Publisher<DebugMsg>::SharedPtr debug_action_;
-  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_wrench_;
-  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_rl_;
-  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_rr_;
-  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_fl_;
-  rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr debug_foot_contact_fr_;
+  rclcpp::Publisher<WrenchStamped>::SharedPtr debug_wrench_;
+  rclcpp::Publisher<WrenchStamped>::SharedPtr debug_foot_contact_rl_;
+  rclcpp::Publisher<WrenchStamped>::SharedPtr debug_foot_contact_rr_;
+  rclcpp::Publisher<WrenchStamped>::SharedPtr debug_foot_contact_fl_;
+  rclcpp::Publisher<WrenchStamped>::SharedPtr debug_foot_contact_fr_;
   void publishDebugMsg();
 };
 }  // namespace unitree_a1_neural_control

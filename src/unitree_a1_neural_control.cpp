@@ -56,9 +56,9 @@ void UnitreeNeuralControl::initValues()
   std::fill(last_action_.begin(), last_action_.end(), 0.0f);
 }
 
-unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
-  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+LowCmd UnitreeNeuralControl::modelForward(
+  const TwistStamped::SharedPtr goal,
+  const LowState::SharedPtr msg)
 {
   // Convert msg to states
   auto state = this->msgToTensor(goal, msg);
@@ -83,10 +83,10 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
   return this->actionToMsg(action_vec);
 }
 
-unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
-  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const sensor_msgs::msg::Imu::SharedPtr imu,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+LowCmd UnitreeNeuralControl::modelForward(
+  const TwistStamped::SharedPtr goal,
+  const Imu::SharedPtr imu,
+  const LowState::SharedPtr msg)
 {
   // Convert msg to states
   auto state = this->msgToTensor(goal, imu, msg);
@@ -112,8 +112,8 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::modelForward(
 }
 
 std::vector<float> UnitreeNeuralControl::msgToTensor(
-  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+  const TwistStamped::SharedPtr goal,
+  const LowState::SharedPtr msg)
 {
   std::vector<float> tensor;
   // Joint positions
@@ -148,9 +148,9 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   return tensor;
 }
 std::vector<float> UnitreeNeuralControl::msgToTensor(
-  const geometry_msgs::msg::TwistStamped::SharedPtr goal,
-  const sensor_msgs::msg::Imu::SharedPtr imu,
-  const unitree_a1_legged_msgs::msg::LowState::SharedPtr msg)
+  const TwistStamped::SharedPtr goal,
+  const Imu::SharedPtr imu,
+  const LowState::SharedPtr msg)
 {
   std::vector<float> tensor;
   // Joint positions
@@ -185,11 +185,11 @@ std::vector<float> UnitreeNeuralControl::msgToTensor(
   return tensor;
 }
 
-unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::actionToMsg(
+LowCmd UnitreeNeuralControl::actionToMsg(
   const std::vector<float> & action)
 {
   (void)action;
-  unitree_a1_legged_msgs::msg::LowCmd cmd;
+  LowCmd cmd;
   cmd.motor_cmd.front_right.hip.q = action[0];
   cmd.motor_cmd.front_right.thigh.q = action[1];
   cmd.motor_cmd.front_right.calf.q = action[2];
@@ -206,7 +206,7 @@ unitree_a1_legged_msgs::msg::LowCmd UnitreeNeuralControl::actionToMsg(
   return cmd;
 }
 std::array<float, 12> UnitreeNeuralControl::pushJointPositions(
-  const unitree_a1_legged_msgs::msg::QuadrupedState & leg)
+  const QuadrupedState & leg)
 {
   std::array<float, 12> pose;
   pose[0] = leg.front_right.hip.q - nominal_[0];
@@ -229,14 +229,14 @@ std::array<float, 12> UnitreeNeuralControl::pushJointPositions(
 
 void UnitreeNeuralControl::pushJointVelocities(
   std::vector<float> & tensor,
-  const unitree_a1_legged_msgs::msg::LegState & joint)
+  const LegState & joint)
 {
   tensor.push_back(joint.hip.dq);
   tensor.push_back(joint.thigh.dq);
   tensor.push_back(joint.calf.dq);
 }
 std::vector<float> UnitreeNeuralControl::convertToGravityVector(
-  const geometry_msgs::msg::Quaternion & orientation)
+  const Quaternion & orientation)
 {
   Quaternionf imu_orientation(orientation.w, orientation.x, orientation.y, orientation.z);
   // to rotation matrix
@@ -252,7 +252,7 @@ std::vector<float> UnitreeNeuralControl::convertToGravityVector(
     static_cast<float>(gravity_sensor.z())};
 }
 void UnitreeNeuralControl::convertFootForceToContact(
-  const unitree_a1_legged_msgs::msg::FootForceState & foot)
+  const FootForceState & foot)
 {
   auto convertFootForce = [&](const int16_t force)
     {
@@ -284,7 +284,7 @@ void UnitreeNeuralControl::updateCyclesSinceLastContact()
     (foot_contact_[RL] == 1.0f) ? 0.0 : cycles_since_last_contact_[RL_cycle] + 1;
 }
 
-void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)
+void UnitreeNeuralControl::initControlParams(LowCmd & cmd)
 {
   cmd.common.mode = 0x0A;
   cmd.common.kp = kp_;
