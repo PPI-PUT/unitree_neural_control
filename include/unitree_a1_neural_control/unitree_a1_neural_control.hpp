@@ -42,6 +42,10 @@ constexpr size_t FL = 0;
 constexpr size_t FR = 1;
 constexpr size_t RL = 2 ;
 constexpr size_t RR = 3;
+constexpr size_t FL_cycle = 1;
+constexpr size_t FR_cycle = 0;
+constexpr size_t RL_cycle = 3;
+constexpr size_t RR_cycle = 2;
 constexpr uint8_t PMSM_SERVO_MODE = 0x0A;
 
 class UNITREE_A1_NEURAL_CONTROL_PUBLIC UnitreeNeuralControl

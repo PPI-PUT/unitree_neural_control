@@ -272,28 +272,16 @@ void UnitreeNeuralControl::updateCyclesSinceLastContact()
   //   } else {
   //     cycles_since_last_contact_[i] += 1.0f;
   //   }
-  // } 
+  // }
   // shit order:
-  if (foot_contact_[FR] == 1.0f) {
-    cycles_since_last_contact_[0] = 0.0f;
-  } else {
-    cycles_since_last_contact_[0] += 1.0f;
-  }
-  if (foot_contact_[FL] == 1.0f) {
-    cycles_since_last_contact_[1] = 0.0f;
-  } else {
-    cycles_since_last_contact_[1] += 1.0f;
-  }
-  if (foot_contact_[RR] == 1.0f) {
-    cycles_since_last_contact_[2] = 0.0f;
-  } else {
-    cycles_since_last_contact_[2] += 1.0f;
-  }
-  if (foot_contact_[RL] == 1.0f) {
-    cycles_since_last_contact_[3] = 0.0f;
-  } else {
-    cycles_since_last_contact_[3] += 1.0f;
-  }
+  cycles_since_last_contact_[FL_cycle] =
+    (foot_contact_[FL] == 1.0f) ? 0.0 : cycles_since_last_contact_[FL_cycle] + 1;
+  cycles_since_last_contact_[FR_cycle] =
+    (foot_contact_[FR] == 1.0f) ? 0.0 : cycles_since_last_contact_[FR_cycle] + 1;
+  cycles_since_last_contact_[RR_cycle] =
+    (foot_contact_[RR] == 1.0f) ? 0.0 : cycles_since_last_contact_[RR_cycle] + 1;
+  cycles_since_last_contact_[RL_cycle] =
+    (foot_contact_[RL] == 1.0f) ? 0.0 : cycles_since_last_contact_[RL_cycle] + 1;
 }
 
 void UnitreeNeuralControl::initControlParams(unitree_a1_legged_msgs::msg::LowCmd & cmd)
