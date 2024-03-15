@@ -7,21 +7,15 @@ ament_auto_find_build_dependencies(REQUIRED
   ${${PROJECT_NAME}_BUILDTOOL_DEPENDS}
 )
 
-add_compile_options(-Wall -Wextra -pedantic -Werror)
+add_compile_options(-Wall -Wextra -pedantic)
 add_compile_options(-Wno-missing-field-initializers)
 find_package(Eigen3 REQUIRED)
-find_path(TORCH_INCLUDE_DIRS torch/torch.h
-    PATHS $ENV{HOME}/.local/lib/python3.10/site-packages/torch/include
-    NO_DEFAULT_PATH
-)
-find_library(TORCH_LIBRARY torch
-    PATHS $ENV{HOME}/.local/lib/python3.10/site-packages/torch/lib
-    NO_DEFAULT_PATH
-)
+find_package(Torch REQUIRED)
+
 include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS}
-  ${TORCH_INCLUDE_DIRS}
+  # ${TORCH_INCLUDE_DIRS}
 )
 
 set(UNITREE_A1_NEURAL_CONTROL_LIB_SRC
